@@ -1,6 +1,5 @@
 package shop_manager;
 
-import org.json.JSONException;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -10,8 +9,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import shop_manager.entities.Shop;
 import shop_manager.repos.ShopRepository;
 import shop_manager.services.CoordinatesService;
-
-import java.io.IOException;
 
 /**
  * Created by steve on 14/06/2017.
@@ -34,7 +31,7 @@ public class CoordinatesServiceTest {
         shop.setName("test");
         Shop.Address address = new Shop.Address();
         address.setNumber(1);
-        address.setPostCode("E3 2QS");
+        address.setPostCode("E14 5GH");
         shop.setAddress(address);
         coordinatesService.getCoordinates(shop);
         Assert.assertNotNull(shop.getAddress().getLatitude());
@@ -42,27 +39,26 @@ public class CoordinatesServiceTest {
 
     }
 
-    @Test // Save shops in Farnborough (Hampshire) and Bath, use London as the current location, expect Farnborough shop to be nearest
+    @Test // Save shops in Cardiff and Edinburgh, use London as the current location, expect Cardiff shop to be nearest
     public void test_get_nearest() throws Exception {
 
-        Shop farnborough = new Shop();
-        farnborough.setName("Farnborough");
-        Shop.Address fAddress = new Shop.Address();
-        fAddress.setLongitude(-0.7874301);
-        fAddress.setLatitude(51.2900157);
-        farnborough.setAddress(fAddress);
-        shopRepository.save(farnborough);
-        Shop bath = new Shop();
-        Shop.Address bAddress = new Shop.Address();
-        bath.setName("Bath");
-        bAddress.setLongitude(-2.3724416);
-        bAddress.setLatitude(51.3836861);
-        bath.setAddress(bAddress);
-        shopRepository.save(bath);
+        Shop shop1 = constructShop("Cardiff",51.4782085,-3.1848281);
+        shopRepository.save(shop1);
+        Shop shop2 = constructShop("Edinburgh",55.940304,-3.241316);
+        shopRepository.save(shop2);
+        Shop nearest = coordinatesService.getNearest(51.4558185,-0.3434558);
+        Assert.assertTrue(nearest.getName().equals(shop1.getName()));
 
-        Shop nearest = coordinatesService.getNearest(51.5297,0.0218);
-        Assert.assertTrue(nearest.getName().equals(farnborough.getName()));
+    }
 
+    private Shop constructShop(String name, Double latitude, Double longitude) {
+        Shop shop = new Shop();
+        shop.setName(name);
+        Shop.Address address = new Shop.Address();
+        address.setLatitude(latitude);
+        address.setLongitude(longitude);
+        shop.setAddress(address);
+        return shop;
     }
 
 }

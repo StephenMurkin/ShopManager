@@ -1,11 +1,11 @@
 package shop_manager.controllers;
 
-import org.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.RepositoryRestController;
 import org.springframework.hateoas.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -36,7 +36,8 @@ public class ShopController {
     @Autowired
     private ShopResourceAssembler shopResourceAssembler;
 
-    @RequestMapping(path="/shops",method = RequestMethod.POST)
+    @Transactional
+    @RequestMapping(path="/shops", method = RequestMethod.POST, produces = "application/hal+json;charset=UTF-8")
     public ResponseEntity<?> post(@RequestBody Shop shop) throws Exception {
 
         Optional<Shop> existing = shopRepository.findByName(shop.getName());
@@ -70,7 +71,7 @@ public class ShopController {
         }
     }
 
-    @RequestMapping(path="/shops",method = RequestMethod.GET)
+    @RequestMapping(path="/shops",method = RequestMethod.GET, produces = "application/hal+json;charset=UTF-8")
     public ResponseEntity<?> get(@RequestParam(name = "lat", required = false) Double latitude,
                                  @RequestParam(name = "lng", required = false) Double longitude)
                                  throws Exception {

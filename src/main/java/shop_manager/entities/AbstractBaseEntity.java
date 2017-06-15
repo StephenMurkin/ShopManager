@@ -20,8 +20,7 @@ public abstract class AbstractBaseEntity implements IBaseEntity {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    //  For optimistically locking entity - TODO - not sure how to test this
-    @Version
+    @Version //  For optimistic locking
     private Long version = 0L;
 
     protected AbstractBaseEntity() {}

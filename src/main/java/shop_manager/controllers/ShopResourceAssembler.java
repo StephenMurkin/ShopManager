@@ -15,6 +15,7 @@ import java.util.Map;
 /**
  * Created by steve on 15/06/2017.
  */
+
 @Component
 public class ShopResourceAssembler implements ResourceAssembler<Shop,Resource<Shop>> {
 

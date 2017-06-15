@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -39,16 +40,15 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.*;
 @SpringBootTest(classes = Application.class)
 public class ShopControllerTest {
 
-    private MockMvc mockMvc;
-
     @Autowired
     private WebApplicationContext webApplicationContext;
 
     @Autowired
     private ShopRepository shopRepository;
 
+    private MockMvc mockMvc;
     private ObjectMapper objectMapper = new ObjectMapper();
-    private final String baseURL = "/shops";
+    private String baseURL = "/shops";
 
     @Before
     public void setUp() {
@@ -64,7 +64,7 @@ public class ShopControllerTest {
 
         Assert.assertTrue(shopRepository.count()==1);
 
-        this.mockMvc.perform(get(baseURL + "/" + saved.getId()))
+        this.mockMvc.perform(get(baseURL + "/" + saved.getId()).accept(MediaTypes.HAL_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value(shop.getName()));
@@ -77,40 +77,44 @@ public class ShopControllerTest {
         Shop shop1 = constructShop();
         shopRepository.save(shop1);
         Shop shop2 = constructShop();
-        shop2.setName("Asda");
+        shop2.setName("ShopB");
         shopRepository.save(shop2);
 
         Assert.assertTrue(shopRepository.count()==2);
 
-        this.mockMvc.perform(get(baseURL))
+        this.mockMvc.perform(get(baseURL).accept(MediaTypes.HAL_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.shops[1].name").value(shop2.getName()));
 
     }
 
-    @Test // Save shops in Farnborough (Hampshire) and Bath, use London as the current location, expect Farnborough shop to be nearest
+    @Test // Save shops in Cardiff and Edinburgh, use London as the current location, expect Cardiff shop to be nearest
     public void test_get_nearest() throws Exception {
 
-        Shop farnborough = new Shop();
-        farnborough.setName("Farnborough");
-        Shop.Address fAddress = new Shop.Address();
-        fAddress.setLongitude(-0.7874301);
-        fAddress.setLatitude(51.2900157);
-        farnborough.setAddress(fAddress);
-        shopRepository.save(farnborough);
-        Shop bath = new Shop();
-        bath.setName("Bath");
-        Shop.Address bAddress = new Shop.Address();
-        bAddress.setLongitude(-2.3724416);
-        bAddress.setLatitude(51.3836861);
-        bath.setAddress(bAddress);
-        double currentLatitude = 51.5297;
-        double currentLongitude = 0.0218;
-        this.mockMvc.perform(get(baseURL + "?lat=" + currentLatitude +"&lng=" + currentLongitude))
+//        Shop farnborough = new Shop();
+//        farnborough.setName("Farnborough");
+//        Shop.Address fAddress = new Shop.Address();
+//        fAddress.setLongitude(-0.7874301);
+//        fAddress.setLatitude(51.2900157);
+//        farnborough.setAddress(fAddress);
+//        shopRepository.save(farnborough);
+//        Shop bath = new Shop();
+//        bath.setName("Bath");
+//        Shop.Address bAddress = new Shop.Address();
+//        bAddress.setLongitude(-2.3724416);
+//        bAddress.setLatitude(51.3836861);
+//        bath.setAddress(bAddress);
+        Shop shop1 = constructShop("Cardiff",51.4782085,-3.1848281);
+        shopRepository.save(shop1);
+        Shop shop2 = constructShop("Edinburgh",55.940304,-3.241316);
+        shopRepository.save(shop2);
+        double currentLatitude = 51.4558185;
+        double currentLongitude = -0.3434558;
+        this.mockMvc.perform(get(baseURL + "?lat=" + currentLatitude +"&lng=" + currentLongitude).accept(MediaTypes.HAL_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value(farnborough.getName()));
+                .andExpect(jsonPath("$.name").value(shop1.getName()));
 
     }
 
@@ -120,9 +124,7 @@ public class ShopControllerTest {
         Shop shop = constructShop();
         String json = objectMapper.writeValueAsString(shop);
 
-        this.mockMvc.perform(post(baseURL)
-                .content(json)
-                .contentType(MediaType.APPLICATION_JSON))
+        this.mockMvc.perform(post(baseURL).content(json).contentType(MediaType.APPLICATION_JSON).accept(MediaTypes.HAL_JSON))
                 .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value(shop.getName()))
@@ -133,21 +135,19 @@ public class ShopControllerTest {
 
     }
 
-//    @Ignore // TODO - don't understand why this test doesn't pass - expected behaviour observed through Postman
     @Test
     public void test_put() throws Exception {
 
         Shop original = constructShop();
         shopRepository.save(original);
         Shop updated = constructShop();
-        updated.getAddress().setNumber(2);
+        updated.getAddress().setNumber(11);
         String json = objectMapper.writeValueAsString(updated);
 
-        this.mockMvc.perform(put(baseURL + "/" + original.getId())
-                .content(json))
+        this.mockMvc.perform(put(baseURL + "/" + original.getId()).content(json).contentType(MediaType.APPLICATION_JSON).accept(MediaTypes.HAL_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.addressNumber").value(2));
+                .andExpect(jsonPath("$.address.number").value(11));
 
         Assert.assertTrue(shopRepository.count()==1);
 
@@ -161,7 +161,7 @@ public class ShopControllerTest {
 
         Assert.assertTrue(shopRepository.count()==1);
 
-        this.mockMvc.perform(delete(baseURL + "/" + saved.getId()))
+        this.mockMvc.perform(delete(baseURL + "/" + saved.getId()).accept(MediaTypes.HAL_JSON))
                 .andDo(print())
                 .andExpect(status().isNoContent());
 
@@ -175,16 +175,14 @@ public class ShopControllerTest {
         Shop original = constructShop();
         shopRepository.save(original);
         Shop updated = constructShop();
-        updated.getAddress().setNumber(2);
+        updated.getAddress().setNumber(11);
         String json = objectMapper.writeValueAsString(updated);
 
-        this.mockMvc.perform(post(baseURL)
-                .content(json)
-                .contentType(MediaType.APPLICATION_JSON))
+        this.mockMvc.perform(post(baseURL).content(json).contentType(MediaType.APPLICATION_JSON).accept(MediaTypes.HAL_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.current.address.number").value(2))
-                .andExpect(jsonPath("$.content.previous.address.number").value(1));
+                .andExpect(jsonPath("$.content.current.address.number").value(11))
+                .andExpect(jsonPath("$.content.previous.address.number").value(10));
 
         Assert.assertTrue(shopRepository.count()==1);
 
@@ -192,10 +190,20 @@ public class ShopControllerTest {
 
     private Shop constructShop() {
         Shop shop = new Shop();
-        shop.setName("Tesco");
+        shop.setName("ShopA");
         Shop.Address address = new Shop.Address();
-        address.setNumber(1);
-        address.setPostCode("E3 2QS");
+        address.setNumber(10);
+        address.setPostCode("E14 5GH");
+        shop.setAddress(address);
+        return shop;
+    }
+
+    private Shop constructShop(String name, Double latitude, Double longitude) {
+        Shop shop = new Shop();
+        shop.setName(name);
+        Shop.Address address = new Shop.Address();
+        address.setLatitude(latitude);
+        address.setLongitude(longitude);
         shop.setAddress(address);
         return shop;
     }
